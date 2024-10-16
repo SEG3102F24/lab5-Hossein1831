@@ -1,19 +1,36 @@
 import { Injectable } from '@angular/core';
-import {BehaviorSubject, Observable} from "rxjs";
-import {Employee} from "../model/employee";
+import { BehaviorSubject, Observable } from 'rxjs';
+import {
+  Firestore,
+  collection,
+  collectionData,
+  addDoc,
+} from '@angular/fire/firestore';
+import { Employee } from '../model/employee';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class EmployeeService {
-  employees$: BehaviorSubject<readonly Employee[]> = new BehaviorSubject<readonly Employee[]>([]);
+  private employeesCollection = collection(this.firestore, 'employees'); // Firestore collection reference
 
-  get $(): Observable<readonly Employee[]> {
-    return this.employees$;
+  constructor(private firestore: Firestore) {}
+
+  // Get all employees from Firestore
+  getEmployees(): Observable<Employee[]> {
+    return collectionData(this.employeesCollection, {
+      idField: 'id',
+    }) as Observable<Employee[]>;
   }
 
-  addEmployee(employee: Employee) {
-    this.employees$.next([...this.employees$.getValue(), employee]);
-    return true;
+  // Add a new employee to Firestore
+  addEmployee(employee: Employee): Promise<void> {
+    delete employee.id; // Ensure Firestore generates an ID
+    return addDoc(this.employeesCollection, { ...employee })
+      .then(() => {})
+      .catch((error) => {
+        console.error('Error while adding employee to Firestore:', error);
+        throw error;
+      });
   }
 }
